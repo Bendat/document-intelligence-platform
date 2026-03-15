@@ -61,6 +61,10 @@ EMBEDDING_MODEL=openai/text-embedding-3-small \
 make github-models-smoke
 ```
 
+For GitHub Actions, store the PAT as `GH_MODELS_TOKEN` (secret names cannot
+start with `GITHUB_`); the workflow maps it to `GITHUB_MODELS_TOKEN` at
+runtime.
+
 If `uv` is installed:
 
 ```bash

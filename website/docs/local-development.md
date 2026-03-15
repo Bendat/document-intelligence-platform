@@ -210,6 +210,10 @@ GitHub Models configuration (generation + embeddings):
   (for example `openai/text-embedding-3-small`)
 - optional `GITHUB_MODELS_ORG` to target org-scoped inference routes
 
+For GitHub Actions, store the PAT as `GH_MODELS_TOKEN` (GitHub disallows custom
+secret names that start with `GITHUB_`). The workflow maps it to
+`GITHUB_MODELS_TOKEN` at runtime.
+
 `make ai-models` pulls the default Ollama models into the local Docker volume.
 That step is intentionally explicit so `make up` stays reasonably fast and does
 not download multi-gigabyte model weights unless the developer wants them. It

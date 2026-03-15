@@ -26,6 +26,9 @@ jobs:
       GENERATION_MODEL: openai/gpt-4.1-mini
       EMBEDDING_MODEL: openai/text-embedding-3-small
       GITHUB_MODELS_API_VERSION: 2026-03-10
+      # GitHub Actions secrets cannot start with "GITHUB_".
+      # Use GH_MODELS_TOKEN and map it to the runtime env var expected by the app.
+      GITHUB_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN || github.token }}
 
     steps:
       - name: Checkout

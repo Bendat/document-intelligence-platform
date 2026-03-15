@@ -9,6 +9,7 @@ from document_intelligence.application.document_catalog.commands import (
 )
 from document_intelligence.application.document_catalog.enrichment import (
     ClassifyDocument,
+    DocumentContentUnavailableError,
     EmbeddingCountMismatchError,
     EmbedDocumentChunks,
     EnrichDocument,
@@ -193,6 +194,11 @@ def ingest_local_document(
     except InvalidSourceError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
+    except DocumentContentUnavailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),
         ) from error
     except (

@@ -207,6 +207,21 @@ def test_local_ingest_returns_502_when_embedding_count_is_invalid(
     assert response.status_code == 502
 
 
+def test_local_ingest_returns_422_for_empty_document_content(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "empty.txt"
+    source.write_text("", encoding="utf-8")
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/documents/ingest/local",
+        json={"source_uri": str(source)},
+    )
+
+    assert response.status_code == 422
+
+
 def test_local_ingest_endpoint_disabled_outside_development_by_default(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
