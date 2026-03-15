@@ -47,6 +47,13 @@ In a second shell:
 make worker
 ```
 
+To run the API with Postgres-backed persistence in this slice:
+
+```bash
+PERSISTENCE_BACKEND=postgres make db-upgrade
+PERSISTENCE_BACKEND=postgres make api
+```
+
 ## Compose notes
 
 - PostgreSQL listens on `localhost:5432`

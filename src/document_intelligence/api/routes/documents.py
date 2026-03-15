@@ -93,6 +93,7 @@ def create_document(
     service = CreateDocument(
         document_repository=container.document_repository,
         dispatcher=container.task_dispatcher,
+        transaction_manager=container.transaction_manager,
     )
     document = service.execute(
         CreateDocumentCommand(

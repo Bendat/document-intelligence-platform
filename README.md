@@ -33,6 +33,13 @@ make worker
 make test
 ```
 
+To use Postgres persistence for the API/runtime:
+
+```bash
+PERSISTENCE_BACKEND=postgres make db-upgrade
+PERSISTENCE_BACKEND=postgres make api
+```
+
 ## Documentation
 
 - [Planning site](./website/README.md)

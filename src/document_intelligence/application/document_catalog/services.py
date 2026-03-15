@@ -6,6 +6,9 @@ from document_intelligence.application.common.ports.repositories import (
     ChunkRepository,
     DocumentRepository,
 )
+from document_intelligence.application.common.ports.transactions import (
+    TransactionManager,
+)
 from document_intelligence.application.document_catalog.commands import (
     CreateDocumentCommand,
     RecordChunksCommand,
@@ -30,6 +33,7 @@ class DocumentDetails:
 class CreateDocument:
     document_repository: DocumentRepository
     dispatcher: TaskDispatcher
+    transaction_manager: TransactionManager | None = None
 
     def execute(self, command: CreateDocumentCommand) -> Document:
         """Create a document record and queue it for enrichment.
@@ -38,6 +42,13 @@ class CreateDocument:
         chunking, embeddings, classification, and summarization.
         """
 
+        if self.transaction_manager is None:
+            return self._execute(command)
+
+        with self.transaction_manager.transaction():
+            return self._execute(command)
+
+    def _execute(self, command: CreateDocumentCommand) -> Document:
         document = Document(
             id=str(uuid4()),
             source_uri=command.source_uri,
