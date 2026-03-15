@@ -1,0 +1,48 @@
+:root {
+  --ifm-color-primary: #b45309;
+  --ifm-color-primary-dark: #a14b08;
+  --ifm-color-primary-darker: #984607;
+  --ifm-color-primary-darkest: #7d3906;
+  --ifm-color-primary-light: #c75b0a;
+  --ifm-color-primary-lighter: #d2610b;
+  --ifm-color-primary-lightest: #e17823;
+  --ifm-background-color: #fcfaf6;
+  --ifm-navbar-background-color: rgba(252, 250, 246, 0.88);
+  --ifm-footer-background-color: #1f2937;
+  --ifm-heading-color: #111827;
+  --ifm-font-family-base: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --ifm-font-family-monospace: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+  --ifm-code-font-size: 95%;
+  --ifm-global-radius: 14px;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='light'] .navbar {
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+[data-theme='light'] .button.button--secondary {
+  background: transparent;
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  color: #1f2937;
+}
+
+[data-theme='light'] .button.button--secondary:hover {
+  background: rgba(17, 24, 39, 0.04);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #f59e0b;
+  --ifm-color-primary-dark: #dd8d09;
+  --ifm-color-primary-darker: #d28509;
+  --ifm-color-primary-darkest: #ad6d07;
+  --ifm-color-primary-light: #f6aa24;
+  --ifm-color-primary-lighter: #f7b130;
+  --ifm-color-primary-lightest: #f8c25b;
+  --ifm-background-color: #101826;
+  --ifm-navbar-background-color: rgba(16, 24, 38, 0.88);
+  --ifm-footer-background-color: #0b1220;
+  --ifm-heading-color: #f9fafb;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}

@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.ignore/
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+.coverage
+htmlcov/
+dist/
+build/
+website/node_modules/
+website/.docusaurus/
+website/build/
