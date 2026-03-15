@@ -37,11 +37,11 @@ JSON
 )"
 
 chat_response="$(request_json "chat/completions" "${chat_payload}")"
-python3 - <<'PY' <<<"${chat_response}"
+CHAT_RESPONSE_JSON="${chat_response}" python3 - <<'PY'
 import json
-import sys
+import os
 
-payload = json.load(sys.stdin)
+payload = json.loads(os.environ["CHAT_RESPONSE_JSON"])
 content = payload["choices"][0]["message"]["content"].strip()
 if not content:
     raise SystemExit("Chat completion returned empty content.")
@@ -59,11 +59,11 @@ JSON
 )"
 
 embedding_response="$(request_json "embeddings" "${embedding_payload}")"
-python3 - <<'PY' <<<"${embedding_response}"
+EMBEDDING_RESPONSE_JSON="${embedding_response}" python3 - <<'PY'
 import json
-import sys
+import os
 
-payload = json.load(sys.stdin)
+payload = json.loads(os.environ["EMBEDDING_RESPONSE_JSON"])
 embedding = payload["data"][0]["embedding"]
 if not embedding:
     raise SystemExit("Embedding response was empty.")

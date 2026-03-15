@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
@@ -30,11 +30,23 @@ class OpenAICompatibleGenerationProvider:
             timeout_seconds=self.timeout_seconds,
             extra_headers=self.extra_headers,
         )
-        content = (
-            cast(dict[str, Any], body.get("choices", [{}])[0])
-            .get("message", {})
-            .get("content")
-        )
+
+        choices = body.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise ProviderRequestError(
+                "OpenAI-compatible generation response did not contain message content."
+            )
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            raise ProviderRequestError(
+                "OpenAI-compatible generation response did not contain message content."
+            )
+        message = first_choice.get("message")
+        if not isinstance(message, dict):
+            raise ProviderRequestError(
+                "OpenAI-compatible generation response did not contain message content."
+            )
+        content = message.get("content")
         if not isinstance(content, str) or not content.strip():
             raise ProviderRequestError(
                 "OpenAI-compatible generation response did not contain message content."
