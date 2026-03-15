@@ -12,6 +12,7 @@ const sidebars: SidebarsConfig = {
     'testing-strategy',
     'manual-testing',
     'roadmap',
+    'edr-001-local-model-defaults',
     'decision-log',
   ],
 };

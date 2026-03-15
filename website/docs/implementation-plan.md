@@ -112,6 +112,14 @@ Deliverable:
 
 - ingested documents are enriched and queryable
 
+Default local development target for this slice:
+
+- `Ollama` as the local OpenAI-compatible runtime
+- `qwen3-embedding:0.6b` for embeddings
+- `qwen3:4b` for classification and summarization
+- optional local upgrades to `qwen3-embedding:4b` and `qwen3:8b` on stronger
+  machines
+
 ### Slice 6: search and Q&A API
 
 Scope:
