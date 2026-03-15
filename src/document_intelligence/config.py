@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import Any, Literal
 
@@ -62,12 +63,32 @@ class Settings(BaseSettings):
         default=None,
         alias="EMBEDDING_MODEL",
     )
+    ai_provider_backend: Literal[
+        "auto",
+        "deterministic",
+        "openai_compatible",
+        "github_models",
+    ] = Field(default="auto", alias="AI_PROVIDER_BACKEND")
+    github_models_token: str | None = Field(
+        default=None,
+        alias="GITHUB_MODELS_TOKEN",
+    )
+    github_models_org: str | None = Field(
+        default=None,
+        alias="GITHUB_MODELS_ORG",
+    )
+    github_models_api_version: str = Field(
+        default="2026-03-10",
+        alias="GITHUB_MODELS_API_VERSION",
+    )
 
     @field_validator(
         "enable_local_file_ingestion",
         "model_api_base_url",
         "generation_model",
         "embedding_model",
+        "github_models_token",
+        "github_models_org",
         mode="before",
     )
     @classmethod
@@ -83,6 +104,18 @@ class Settings(BaseSettings):
         if self.enable_local_file_ingestion is not None:
             return self.enable_local_file_ingestion
         return self.app_env == "development"
+
+    @property
+    def has_openai_model_configuration(self) -> bool:
+        return (
+            self.model_api_base_url is not None
+            and self.generation_model is not None
+            and self.embedding_model is not None
+        )
+
+    @property
+    def resolved_github_models_token(self) -> str | None:
+        return self.github_models_token or os.getenv("GITHUB_TOKEN")
 
 
 @lru_cache(maxsize=1)

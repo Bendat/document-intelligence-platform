@@ -116,7 +116,9 @@ Implementation note:
 
 Deliverable:
 
-- ingested documents are enriched and queryable
+- documents ingested via `POST /documents/ingest/local` are enriched and queryable
+- `POST /documents/ingest` remains create-and-enqueue until Slice 7 adds background
+  execution
 
 Default local development target for this slice:
 

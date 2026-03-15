@@ -3,8 +3,18 @@ from typing import cast
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
+from document_intelligence.adapters.ai import ProviderRequestError
 from document_intelligence.application.document_catalog.commands import (
     CreateDocumentCommand,
+)
+from document_intelligence.application.document_catalog.enrichment import (
+    ClassifyDocument,
+    DocumentContentUnavailableError,
+    EmbeddingCountMismatchError,
+    EmbedDocumentChunks,
+    EnrichDocument,
+    InvalidProviderResponseError,
+    SummarizeDocument,
 )
 from document_intelligence.application.document_catalog.queries import GetDocumentQuery
 from document_intelligence.application.document_catalog.services import (
@@ -143,6 +153,24 @@ def ingest_local_document(
         parser_registry=container.parser_registry,
         chunker=container.text_chunker,
         transaction_manager=container.transaction_manager,
+        enrich_document=EnrichDocument(
+            document_repository=container.document_repository,
+            embed_document_chunks=EmbedDocumentChunks(
+                document_repository=container.document_repository,
+                chunk_repository=container.chunk_repository,
+                embedding_provider=container.embedding_provider,
+            ),
+            classify_document=ClassifyDocument(
+                document_repository=container.document_repository,
+                chunk_repository=container.chunk_repository,
+                generation_provider=container.generation_provider,
+            ),
+            summarize_document=SummarizeDocument(
+                document_repository=container.document_repository,
+                chunk_repository=container.chunk_repository,
+                generation_provider=container.generation_provider,
+            ),
+        ),
     )
 
     try:
@@ -166,6 +194,20 @@ def ingest_local_document(
     except InvalidSourceError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
+    except DocumentContentUnavailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(error),
+        ) from error
+    except (
+        ProviderRequestError,
+        InvalidProviderResponseError,
+        EmbeddingCountMismatchError,
+    ) as error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(error),
         ) from error
 

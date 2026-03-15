@@ -8,6 +8,7 @@ document intelligence platform MVP.
 Infrastructure runs in Docker Compose:
 
 - PostgreSQL with pgvector
+- Adminer for PostgreSQL browsing
 - Redis
 - Azurite for local Blob Storage emulation
 - Ollama for local model inference
@@ -51,6 +52,19 @@ Run an Ollama smoke test against the configured chat and embedding models:
 make ai-smoke
 ```
 
+Run a GitHub Models smoke test (chat + embeddings) with token auth:
+
+```bash
+GITHUB_MODELS_TOKEN=... \
+GENERATION_MODEL=openai/gpt-4.1-mini \
+EMBEDDING_MODEL=openai/text-embedding-3-small \
+make github-models-smoke
+```
+
+For GitHub Actions, store the PAT as `GH_MODELS_TOKEN` (secret names cannot
+start with `GITHUB_`); the workflow maps it to `GITHUB_MODELS_TOKEN` at
+runtime.
+
 If `uv` is installed:
 
 ```bash
@@ -78,6 +92,14 @@ Typical local startup modes:
   run `make api`
 - async development loop for Slice 7+: `make up && make sync && make ai-models`,
   then run `make api` and `make worker` in separate shells
+
+Database UI:
+
+- Adminer: `http://127.0.0.1:8080` by default (`ADMINER_PORT`)
+- system: `PostgreSQL`
+- server: `postgres` (inside Compose network) or `host.docker.internal`
+- username/password/database: use the values from `.env`
+- defaults: username `postgres`, password `postgres`, database `document_intelligence`
 
 ## Documentation
 

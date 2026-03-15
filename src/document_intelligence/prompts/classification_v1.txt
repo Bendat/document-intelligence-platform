@@ -1,0 +1,17 @@
+You are a strict document classifier for internal engineering knowledge.
+
+Classify the document into exactly one label from this taxonomy:
+{{taxonomy}}
+
+Return JSON only with this exact schema:
+{"label":"<taxonomy-label>","confidence":0.0}
+
+Rules:
+- Use a confidence between 0 and 1.
+- Do not include any keys other than label and confidence.
+- Do not include markdown fences or explanation text.
+
+Document:
+<<<DOCUMENT>>>
+{{document_text}}
+<<<END_DOCUMENT>>>

@@ -7,7 +7,7 @@ EMBEDDING_MODEL ?= $(if $(DOTENV_EMBEDDING_MODEL),$(DOTENV_EMBEDDING_MODEL),qwen
 AI_READY_RETRIES ?= 60
 AI_READY_SLEEP_SECONDS ?= 2
 
-.PHONY: help up down logs sync api worker test lint format typecheck docs-build db-upgrade db-downgrade ai-up ai-models ai-smoke
+.PHONY: help up down logs sync api worker test lint format typecheck docs-build db-upgrade db-downgrade ai-up ai-models ai-smoke github-models-smoke
 
 help:
 	@printf '%s\n' \
@@ -18,10 +18,11 @@ help:
 		'  make sync        Install Python dependencies with uv' \
 		'  make api         Run the FastAPI app on the host' \
 		'  make worker      Run the Celery worker on the host' \
-		'  make ai-up       Start only the Ollama service' \
-		'  make ai-models   Pull GENERATION_MODEL and EMBEDDING_MODEL into Ollama (.env aware)' \
-		'  make ai-smoke    Check Ollama readiness, model presence, chat, and embeddings' \
-		'  make test        Run pytest' \
+			'  make ai-up       Start only the Ollama service' \
+			'  make ai-models   Pull GENERATION_MODEL and EMBEDDING_MODEL into Ollama (.env aware)' \
+			'  make ai-smoke    Check Ollama readiness, model presence, chat, and embeddings' \
+			'  make github-models-smoke  Check GitHub Models chat + embeddings with token auth' \
+			'  make test        Run pytest' \
 		'  make lint        Run ruff check' \
 		'  make format      Run ruff format' \
 		'  make typecheck   Run mypy' \
@@ -65,6 +66,9 @@ ai-models: ai-up
 
 ai-smoke:
 	./scripts/ollama_smoke_test.sh
+
+github-models-smoke:
+	./scripts/github_models_smoke_test.sh
 
 test:
 	$(UV) run pytest

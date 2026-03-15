@@ -1,6 +1,7 @@
 import mimetypes
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlparse
 from uuid import uuid4
 
@@ -22,6 +23,11 @@ from document_intelligence.application.ingestion.commands import (
     IngestLocalDocumentCommand,
 )
 from document_intelligence.domain.document_catalog.entities import Chunk, Document
+
+if TYPE_CHECKING:
+    from document_intelligence.application.document_catalog.enrichment import (
+        EnrichDocument,
+    )
 
 
 class SourceNotFoundError(Exception):
@@ -49,16 +55,19 @@ class IngestLocalDocument:
     parser_registry: ParserRegistry
     chunker: TextChunker
     transaction_manager: TransactionManager | None = None
+    enrich_document: "EnrichDocument | None" = None
 
     def execute(self, command: IngestLocalDocumentCommand) -> IngestionResult:
         result = self._prepare(command)
         if self.transaction_manager is None:
             self._persist(result)
-            return result
+            self._enrich_if_configured(result.document.id)
+            return self._load_persisted_result(result)
 
         with self.transaction_manager.transaction():
             self._persist(result)
-        return result
+            self._enrich_if_configured(result.document.id)
+            return self._load_persisted_result(result)
 
     def _prepare(self, command: IngestLocalDocumentCommand) -> IngestionResult:
         media_type = _resolve_media_type(command)
@@ -72,7 +81,10 @@ class IngestLocalDocument:
             media_type=parsed.media_type,
             extracted_text=parsed.text,
         )
-        document.mark_ready()
+        if self.enrich_document is None:
+            document.mark_ready()
+        else:
+            document.mark_enrichment_pending()
 
         chunks = [
             Chunk(
@@ -92,6 +104,19 @@ class IngestLocalDocument:
             result.document.id,
             result.chunks,
         )
+
+    def _enrich_if_configured(self, document_id: str) -> None:
+        if self.enrich_document is None:
+            return
+        self.enrich_document.execute(document_id)
+
+    def _load_persisted_result(self, fallback: IngestionResult) -> IngestionResult:
+        document = self.document_repository.get(fallback.document.id)
+        if document is None:
+            return fallback
+
+        chunks = list(self.chunk_repository.for_document(document.id))
+        return IngestionResult(document=document, chunks=chunks)
 
 
 def _resolve_media_type(command: IngestLocalDocumentCommand) -> str:
