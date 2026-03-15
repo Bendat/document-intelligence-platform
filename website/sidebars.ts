@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
     'local-development',
     'implementation-plan',
     'testing-strategy',
+    'manual-testing',
     'roadmap',
     'decision-log',
   ],

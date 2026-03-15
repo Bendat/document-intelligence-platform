@@ -96,6 +96,8 @@ Scope:
 Deliverable:
 
 - a document can be ingested end to end from a local source
+- this is exposed as `POST /documents/ingest/local` in the MVP, while
+  `POST /documents/ingest` remains the create-and-enqueue path
 
 ### Slice 5: intelligence enrichment
 

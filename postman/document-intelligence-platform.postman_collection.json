@@ -10,7 +10,25 @@
       "name": "System",
       "item": [
         {
-          "name": "Health",
+          "name": "01 - Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"health returns 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var payload = pm.response.json();",
+                  "pm.test(\"health status is ok\", function () {",
+                  "  pm.expect(payload.status).to.eql(\"ok\");",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -33,19 +51,23 @@
       "name": "Documents",
       "item": [
         {
-          "name": "Ingest Document",
+          "name": "02 - Ingest Document (Create + Enqueue)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"ingest returns 201\", function () {",
+                  "pm.test(\"ingest enqueue returns 201\", function () {",
                   "  pm.response.to.have.status(201);",
                   "});",
                   "",
                   "var payload = pm.response.json();",
                   "pm.collectionVariables.set(\"document_id\", payload.id);",
+                  "",
+                  "pm.test(\"document is enrichment pending\", function () {",
+                  "  pm.expect(payload.status).to.eql(\"enrichment_pending\");",
+                  "});",
                   "",
                   "pm.test(\"document id is captured\", function () {",
                   "  pm.expect(pm.collectionVariables.get(\"document_id\")).to.be.a(\"string\");",
@@ -76,25 +98,33 @@
                 "ingest"
               ]
             },
-            "description": "Create a document record and mark it for downstream enrichment."
+            "description": "Create a document record and enqueue downstream enrichment."
           },
           "response": []
         },
         {
-          "name": "Get Document",
+          "name": "03 - Get Document (Enqueued)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"get document returns 200\", function () {",
+                  "pm.test(\"get enqueued document returns 200\", function () {",
                   "  pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"response contains the requested document\", function () {",
-                  "  var payload = pm.response.json();",
+                  "var payload = pm.response.json();",
+                  "pm.test(\"response contains captured document id\", function () {",
                   "  pm.expect(payload.document.id).to.eql(pm.collectionVariables.get(\"document_id\"));",
+                  "});",
+                  "",
+                  "pm.test(\"status remains enrichment_pending\", function () {",
+                  "  pm.expect(payload.document.status).to.eql(\"enrichment_pending\");",
+                  "});",
+                  "",
+                  "pm.test(\"chunks are empty before enrichment\", function () {",
+                  "  pm.expect(payload.chunks.length).to.eql(0);",
                   "});"
                 ]
               }
@@ -113,7 +143,189 @@
                 "{{document_id}}"
               ]
             },
-            "description": "Retrieve a document and any stored chunks."
+            "description": "Retrieve the enqueued document."
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Ingest Local Document (Sync End-to-End)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"local ingest returns 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var payload = pm.response.json();",
+                  "pm.collectionVariables.set(\"local_document_id\", payload.id);",
+                  "",
+                  "pm.test(\"local ingest marks document ready\", function () {",
+                  "  pm.expect(payload.status).to.eql(\"ready\");",
+                  "});",
+                  "",
+                  "pm.test(\"local document id is captured\", function () {",
+                  "  pm.expect(pm.collectionVariables.get(\"local_document_id\")).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_uri\": \"{{local_source_uri}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/ingest/local",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "ingest",
+                "local"
+              ]
+            },
+            "description": "Synchronously parse a local file and persist document + chunks."
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Get Document (Locally Ingested)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"get local document returns 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var payload = pm.response.json();",
+                  "pm.test(\"response contains local document id\", function () {",
+                  "  pm.expect(payload.document.id).to.eql(pm.collectionVariables.get(\"local_document_id\"));",
+                  "});",
+                  "",
+                  "pm.test(\"local document is ready\", function () {",
+                  "  pm.expect(payload.document.status).to.eql(\"ready\");",
+                  "});",
+                  "",
+                  "pm.test(\"local document has chunks\", function () {",
+                  "  pm.expect(payload.chunks.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/documents/{{local_document_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "{{local_document_id}}"
+              ]
+            },
+            "description": "Retrieve a synchronously ingested local document and verify chunk persistence."
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Ingest Local Missing File (Expected 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"missing local source returns 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_uri\": \"{{missing_source_uri}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/ingest/local",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "ingest",
+                "local"
+              ]
+            },
+            "description": "Negative test for missing local file handling."
+          },
+          "response": []
+        },
+        {
+          "name": "07 - Ingest Local Unsupported Media Type (Expected 415)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"unsupported media type returns 415\", function () {",
+                  "  pm.response.to.have.status(415);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_uri\": \"{{unsupported_source_uri}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/ingest/local",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "ingest",
+                "local"
+              ]
+            },
+            "description": "Negative test for unsupported media type handling."
           },
           "response": []
         }
@@ -124,6 +336,22 @@
     {
       "key": "document_id",
       "value": ""
+    },
+    {
+      "key": "local_document_id",
+      "value": ""
+    },
+    {
+      "key": "local_source_uri",
+      "value": "file:///tmp/document-intelligence-sample.md"
+    },
+    {
+      "key": "missing_source_uri",
+      "value": "file:///tmp/document-intelligence-missing.md"
+    },
+    {
+      "key": "unsupported_source_uri",
+      "value": "file:///tmp/document-intelligence-unsupported.pdf"
     }
   ]
 }

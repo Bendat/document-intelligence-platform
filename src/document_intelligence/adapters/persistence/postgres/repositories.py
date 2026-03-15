@@ -35,11 +35,13 @@ class PostgresDocumentRepository(DocumentRepository):
                     source_uri=document.source_uri,
                     title=document.title,
                     media_type=document.media_type,
+                    extracted_text=document.extracted_text,
                     status=document.status.value,
                 )
             model.source_uri = document.source_uri
             model.title = document.title
             model.media_type = document.media_type
+            model.extracted_text = document.extracted_text
             model.status = document.status.value
             model.classification_label = (
                 document.classification.label
@@ -137,6 +139,7 @@ def _document_from_model(model: DocumentModel) -> Document:
         source_uri=model.source_uri,
         title=model.title,
         media_type=model.media_type,
+        extracted_text=model.extracted_text,
         status=DocumentStatus(model.status),
         classification=classification,
         summary=summary,

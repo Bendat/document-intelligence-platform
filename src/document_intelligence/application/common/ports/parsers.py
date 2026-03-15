@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from typing import Protocol
 
 
+class ParserNotFoundError(LookupError):
+    """Raised when no parser is registered for the requested media type."""
+
+
 @dataclass(slots=True)
 class ParsedDocument:
     title: str

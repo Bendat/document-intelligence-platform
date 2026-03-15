@@ -53,6 +53,7 @@ class Document:
     source_uri: str
     title: str
     media_type: str
+    extracted_text: str | None = None
     status: DocumentStatus = DocumentStatus.CREATED
     classification: Classification | None = None
     summary: Summary | None = None
@@ -61,3 +62,8 @@ class Document:
         """Mark the document as waiting for downstream enrichment work."""
 
         self.status = DocumentStatus.ENRICHMENT_PENDING
+
+    def mark_ready(self) -> None:
+        """Mark the document as fully ingested and retrieval-ready."""
+
+        self.status = DocumentStatus.READY

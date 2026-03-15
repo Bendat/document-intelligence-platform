@@ -1,7 +1,7 @@
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     persistence_backend: Literal["in_memory", "postgres"] = Field(
         default="in_memory",
         alias="PERSISTENCE_BACKEND",
+    )
+    enable_local_file_ingestion: bool | None = Field(
+        default=None,
+        alias="ENABLE_LOCAL_FILE_INGESTION",
     )
 
     database_url: str = Field(
@@ -46,6 +50,21 @@ class Settings(BaseSettings):
         default="",
         alias="AZURE_STORAGE_ACCOUNT_KEY",
     )
+
+    @field_validator("enable_local_file_ingestion", mode="before")
+    @classmethod
+    def _empty_local_ingestion_value_to_none(cls, value: Any) -> Any:
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
+
+    @property
+    def local_file_ingestion_enabled(self) -> bool:
+        """Enable local file ingestion by default only in development."""
+
+        if self.enable_local_file_ingestion is not None:
+            return self.enable_local_file_ingestion
+        return self.app_env == "development"
 
 
 @lru_cache(maxsize=1)
