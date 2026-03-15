@@ -45,3 +45,7 @@ select = ["E", "F", "I", "B", "UP"]
 python_version = "3.13"
 strict = true
 packages = ["document_intelligence"]
+
+[[tool.mypy.overrides]]
+module = ["celery"]
+ignore_missing_imports = true
