@@ -78,12 +78,12 @@ Scope:
 
 - add PostgreSQL schema and migrations
 - implement repository adapters
-- add pgvector support and vector search adapter
+- add pgvector-compatible schema support for stored embeddings
 
 Deliverable:
 
 - documents and chunks persist
-- semantic search can run against stored embeddings
+- stored embeddings have a durable home in PostgreSQL before retrieval work lands
 
 ### Slice 4: ingestion pipeline
 
@@ -108,6 +108,12 @@ Scope:
 - add summarization use case
 - store summaries and classification results
 
+Implementation note:
+
+- local Ollama/Qwen setup may land just ahead of this slice as development
+  scaffolding, but the slice is only complete once provider-backed enrichment is
+  wired through the application layer
+
 Deliverable:
 
 - ingested documents are enriched and queryable
@@ -124,6 +130,7 @@ Default local development target for this slice:
 
 Scope:
 
+- add vector search port and pgvector retrieval adapter
 - add search endpoint
 - add grounded Q&A endpoint
 - add citation response contracts

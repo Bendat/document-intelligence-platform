@@ -60,8 +60,9 @@ review becomes a real collaboration requirement.
 ### Use a hybrid local development stack
 
 Reason:
-Run infrastructure with Docker Compose and keep the API and worker on the host
-machine during early development. That keeps iteration fast without giving up a
+Run infrastructure with Docker Compose and keep application processes on the
+host machine during early development. Today that means the API, and later the
+worker once async execution lands. This keeps iteration fast without giving up a
 reproducible local environment.
 
 ### Use Ollama plus Qwen3 as the local Slice 5 default
