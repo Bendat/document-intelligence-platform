@@ -54,6 +54,8 @@ PERSISTENCE_BACKEND=postgres make db-upgrade
 PERSISTENCE_BACKEND=postgres make api
 ```
 
+For a step-by-step Postman smoke flow, see [Manual Testing](./manual-testing.md).
+
 ## Compose notes
 
 - PostgreSQL listens on `localhost:5432`

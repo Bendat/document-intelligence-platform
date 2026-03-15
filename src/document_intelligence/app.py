@@ -9,7 +9,8 @@ from document_intelligence.config import get_settings
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name)
-    app.state.container = create_container()
+    app.state.settings = settings
+    app.state.container = create_container(settings=settings)
     app.include_router(documents_router)
     app.include_router(health_router)
     return app

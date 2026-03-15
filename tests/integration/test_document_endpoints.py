@@ -1,6 +1,12 @@
+from pathlib import Path
+from typing import cast
+
+import pytest
 from fastapi.testclient import TestClient
 
 from document_intelligence.app import create_app
+from document_intelligence.bootstrap import ApplicationContainer
+from document_intelligence.config import get_settings
 
 
 def test_create_and_get_document() -> None:
@@ -31,5 +37,110 @@ def test_get_missing_document_returns_404() -> None:
     client = TestClient(create_app())
 
     response = client.get("/documents/missing-document")
+
+    assert response.status_code == 404
+
+
+def test_local_ingest_endpoint_persists_chunks(tmp_path: Path) -> None:
+    source = tmp_path / "runbook.md"
+    source.write_text(
+        "# Payments Runbook\n\nFirst paragraph.\n\nSecond paragraph with more details.",
+        encoding="utf-8",
+    )
+
+    client = TestClient(create_app())
+
+    ingest_response = client.post(
+        "/documents/ingest/local",
+        json={"source_uri": str(source)},
+    )
+
+    assert ingest_response.status_code == 201
+    created_document = ingest_response.json()
+    assert created_document["status"] == "ready"
+    assert created_document["title"] == "Payments Runbook"
+
+    get_response = client.get(f"/documents/{created_document['id']}")
+
+    assert get_response.status_code == 200
+    payload = get_response.json()
+    assert payload["document"]["status"] == "ready"
+    assert payload["chunks"]
+
+
+def test_local_ingest_endpoint_returns_404_for_missing_file(tmp_path: Path) -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/documents/ingest/local",
+        json={"source_uri": str(tmp_path / 'missing.md')},
+    )
+
+    assert response.status_code == 404
+
+
+def test_local_ingest_endpoint_returns_415_for_unsupported_media_type(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "unsupported.pdf"
+    source.write_text("synthetic content", encoding="utf-8")
+
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/documents/ingest/local",
+        json={"source_uri": str(source)},
+    )
+
+    assert response.status_code == 415
+
+
+def test_local_ingest_persists_extracted_text_in_repository(tmp_path: Path) -> None:
+    source = tmp_path / "architecture.md"
+    source_text = (
+        "# Architecture Notes\n\n"
+        "Hexagonal boundaries keep application logic independent from adapters."
+    )
+    source.write_text(source_text, encoding="utf-8")
+
+    app = create_app()
+    client = TestClient(app)
+
+    ingest_response = client.post(
+        "/documents/ingest/local",
+        json={"source_uri": str(source)},
+    )
+
+    assert ingest_response.status_code == 201
+    document_id = ingest_response.json()["id"]
+
+    get_response = client.get(f"/documents/{document_id}")
+    assert get_response.status_code == 200
+
+    container = cast(ApplicationContainer, app.state.container)
+    stored_document = container.document_repository.get(document_id)
+    assert stored_document is not None
+    assert stored_document.extracted_text == source_text
+
+
+def test_local_ingest_endpoint_disabled_outside_development_by_default(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "runbook.md"
+    source.write_text("# Runbook\n\nSample content.", encoding="utf-8")
+
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.delenv("ENABLE_LOCAL_FILE_INGESTION", raising=False)
+    get_settings.cache_clear()
+
+    try:
+        client = TestClient(create_app())
+        response = client.post(
+            "/documents/ingest/local",
+            json={"source_uri": str(source)},
+        )
+    finally:
+        get_settings.cache_clear()
 
     assert response.status_code == 404

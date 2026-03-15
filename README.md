@@ -45,3 +45,4 @@ PERSISTENCE_BACKEND=postgres make api
 - [Planning site](./website/README.md)
 - [Implementation plan](./website/docs/implementation-plan.md)
 - [Local development](./website/docs/local-development.md)
+- [Manual testing (Postman)](./website/docs/manual-testing.md)

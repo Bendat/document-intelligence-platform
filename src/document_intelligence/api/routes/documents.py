@@ -12,7 +12,17 @@ from document_intelligence.application.document_catalog.services import (
     DocumentNotFoundError,
     GetDocument,
 )
+from document_intelligence.application.ingestion.commands import (
+    IngestLocalDocumentCommand,
+)
+from document_intelligence.application.ingestion.services import (
+    IngestLocalDocument,
+    InvalidSourceError,
+    SourceNotFoundError,
+    UnsupportedMediaTypeError,
+)
 from document_intelligence.bootstrap import ApplicationContainer
+from document_intelligence.config import Settings
 from document_intelligence.domain.document_catalog.entities import Chunk, Document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -80,8 +90,18 @@ class DocumentDetailsResponse(BaseModel):
     chunks: list[ChunkResponse]
 
 
+class IngestLocalDocumentRequest(BaseModel):
+    source_uri: str
+    title: str | None = None
+    media_type: str | None = None
+
+
 def get_container(request: Request) -> ApplicationContainer:
     return cast(ApplicationContainer, request.app.state.container)
+
+
+def get_settings(request: Request) -> Settings:
+    return cast(Settings, request.app.state.settings)
 
 
 @router.post("/ingest", status_code=status.HTTP_201_CREATED)
@@ -103,6 +123,53 @@ def create_document(
         )
     )
     return DocumentResponse.from_domain(document)
+
+
+@router.post("/ingest/local", status_code=status.HTTP_201_CREATED)
+def ingest_local_document(
+    payload: IngestLocalDocumentRequest,
+    request: Request,
+) -> DocumentResponse:
+    if not get_settings(request).local_file_ingestion_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Local file ingestion is disabled",
+        )
+
+    container = get_container(request)
+    service = IngestLocalDocument(
+        document_repository=container.document_repository,
+        chunk_repository=container.chunk_repository,
+        parser_registry=container.parser_registry,
+        chunker=container.text_chunker,
+        transaction_manager=container.transaction_manager,
+    )
+
+    try:
+        result = service.execute(
+            IngestLocalDocumentCommand(
+                source_uri=payload.source_uri,
+                title=payload.title,
+                media_type=payload.media_type,
+            )
+        )
+    except SourceNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+    except UnsupportedMediaTypeError as error:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=str(error),
+        ) from error
+    except InvalidSourceError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
+
+    return DocumentResponse.from_domain(result.document)
 
 
 @router.get("/{document_id}")

@@ -14,6 +14,7 @@ class DocumentModel(Base):
     source_uri: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     media_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(64), nullable=False)
     classification_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     classification_confidence: Mapped[float | None] = mapped_column(

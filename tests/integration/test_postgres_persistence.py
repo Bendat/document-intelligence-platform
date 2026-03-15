@@ -118,6 +118,7 @@ def test_document_repository_round_trip(
         source_uri="file:///docs/roundtrip.md",
         title="Round Trip",
         media_type="text/markdown",
+        extracted_text="Round trip extracted text",
         status=DocumentStatus.READY,
         classification=Classification(label="runbook", confidence=0.91),
         summary=Summary(text="Short summary"),
@@ -129,6 +130,7 @@ def test_document_repository_round_trip(
     assert loaded is not None
     assert loaded.id == document.id
     assert loaded.status is DocumentStatus.READY
+    assert loaded.extracted_text == "Round trip extracted text"
     assert loaded.classification is not None
     assert loaded.classification.label == "runbook"
     assert loaded.classification.confidence == pytest.approx(0.91)

@@ -39,3 +39,47 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    needs: backend
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/document_intelligence_test
+      POSTGRES_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/document_intelligence_test
+      PERSISTENCE_BACKEND: postgres
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: document_intelligence_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d document_intelligence_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Apply migrations
+        run: uv run alembic upgrade head
+
+      - name: Run Postgres integration tests
+        run: uv run pytest tests/integration/test_postgres_persistence.py
