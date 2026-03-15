@@ -330,6 +330,116 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Ollama",
+      "item": [
+        {
+          "name": "08 - Ollama Chat Smoke",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"ollama chat returns 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var payload = pm.response.json();",
+                  "var content = payload.choices[0].message.content;",
+                  "",
+                  "pm.test(\"ollama chat returns non-empty content\", function () {",
+                  "  pm.expect(content).to.be.a(\"string\");",
+                  "  pm.expect(content.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"ollama chat response contains OK\", function () {",
+                  "  pm.expect(content).to.include(\"OK\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{generation_model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Reply with exactly: OK\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{ollama_base_url}}/chat/completions",
+              "host": [
+                "{{ollama_base_url}}"
+              ],
+              "path": [
+                "chat",
+                "completions"
+              ]
+            },
+            "description": "Smoke-test the Ollama OpenAI-compatible chat endpoint with the configured generation model."
+          },
+          "response": []
+        },
+        {
+          "name": "09 - Ollama Embedding Smoke",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"ollama embeddings returns 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var payload = pm.response.json();",
+                  "var embedding = payload.data[0].embedding;",
+                  "",
+                  "pm.test(\"embedding vector is present\", function () {",
+                  "  pm.expect(Array.isArray(embedding)).to.eql(true);",
+                  "  pm.expect(embedding.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"embedding values are numeric\", function () {",
+                  "  pm.expect(typeof embedding[0]).to.eql(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{embedding_model}}\",\n  \"input\": \"Document intelligence platform\"\n}"
+            },
+            "url": {
+              "raw": "{{ollama_base_url}}/embeddings",
+              "host": [
+                "{{ollama_base_url}}"
+              ],
+              "path": [
+                "embeddings"
+              ]
+            },
+            "description": "Smoke-test the Ollama OpenAI-compatible embeddings endpoint with the configured embedding model."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [

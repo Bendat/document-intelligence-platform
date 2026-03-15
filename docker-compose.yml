@@ -38,7 +38,17 @@ services:
     volumes:
       - azurite_data:/data
 
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.13.5}
+    container_name: dip-ollama
+    command: serve
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
   postgres_data:
   redis_data:
   azurite_data:
+  ollama_data:

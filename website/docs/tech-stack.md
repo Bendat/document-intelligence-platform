@@ -26,6 +26,9 @@ sidebar_position: 5
 ## AI integration
 
 - OpenAI-compatible chat and embedding providers behind internal ports
+- `Ollama` as the default local model runtime for Slice 5 development
+- `qwen3-embedding:0.6b` as the default local embedding model
+- `qwen3:4b` as the default local classification and summarization model
 - provider-specific SDKs isolated to adapter modules
 - prompt templates stored in version-controlled files
 
@@ -53,6 +56,8 @@ sidebar_position: 5
   operations demand a different queue
 - provider-specific AI code stays out of the core domain through ports and
   adapters
+- the local default model runtime stays free to use while preserving a clean
+  upgrade path to hosted providers later
 - `pytest` is enough for acceptance coverage while the domain and API shape are
   still moving
 

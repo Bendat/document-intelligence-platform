@@ -50,10 +50,28 @@ class Settings(BaseSettings):
         default="",
         alias="AZURE_STORAGE_ACCOUNT_KEY",
     )
+    model_api_base_url: str | None = Field(
+        default=None,
+        alias="MODEL_API_BASE_URL",
+    )
+    generation_model: str | None = Field(
+        default=None,
+        alias="GENERATION_MODEL",
+    )
+    embedding_model: str | None = Field(
+        default=None,
+        alias="EMBEDDING_MODEL",
+    )
 
-    @field_validator("enable_local_file_ingestion", mode="before")
+    @field_validator(
+        "enable_local_file_ingestion",
+        "model_api_base_url",
+        "generation_model",
+        "embedding_model",
+        mode="before",
+    )
     @classmethod
-    def _empty_local_ingestion_value_to_none(cls, value: Any) -> Any:
+    def _empty_string_value_to_none(cls, value: Any) -> Any:
         if isinstance(value, str) and value.strip() == "":
             return None
         return value

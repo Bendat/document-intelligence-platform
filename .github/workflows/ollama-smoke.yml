@@ -1,0 +1,42 @@
+name: Ollama Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ollama-smoke.yml"
+      - "Makefile"
+      - "docker-compose.yml"
+      - ".env.example"
+      - "scripts/ollama_smoke_test.sh"
+      - "website/docs/local-development.md"
+      - "website/docs/edr-001-local-model-defaults.md"
+  pull_request:
+    paths:
+      - ".github/workflows/ollama-smoke.yml"
+      - "Makefile"
+      - "docker-compose.yml"
+      - ".env.example"
+      - "scripts/ollama_smoke_test.sh"
+      - "website/docs/local-development.md"
+      - "website/docs/edr-001-local-model-defaults.md"
+
+jobs:
+  ollama-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start Ollama
+        run: docker compose up -d ollama
+
+      - name: Pull default smoke-test models
+        run: make ai-models
+
+      - name: Run Ollama smoke test
+        run: make ai-smoke

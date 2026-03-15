@@ -42,23 +42,26 @@ ALEMBIC_INI_PATH = REPO_ROOT / "alembic.ini"
 @pytest.fixture(scope="module")
 def migrated_database_url() -> Iterator[str]:
     database_url = _resolve_test_database_url()
-    engine = create_engine(database_url)
+    engine = None
 
     try:
+        _ensure_test_database_exists(database_url)
+        _reset_test_database(database_url)
+        engine = create_engine(database_url)
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
     except SQLAlchemyError as error:
-        engine.dispose()
         pytest.skip(f"Postgres is unavailable: {error}")
-
-    engine.dispose()
+    finally:
+        if engine is not None:
+            engine.dispose()
 
     command.upgrade(_alembic_config(database_url), "head")
 
     try:
         yield database_url
     finally:
-        command.downgrade(_alembic_config(database_url), "base")
+        _reset_test_database(database_url)
 
 
 @pytest.fixture()
@@ -293,6 +296,41 @@ def _alembic_config(database_url: str) -> Config:
     config = Config(str(ALEMBIC_INI_PATH))
     config.set_main_option("sqlalchemy.url", database_url)
     return config
+
+
+def _ensure_test_database_exists(database_url: str) -> None:
+    parsed = make_url(database_url)
+    database_name = parsed.database
+    if not database_name:
+        raise ValueError("Test database URL must include a database name.")
+
+    admin_url = parsed.set(database="postgres")
+    admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+
+    try:
+        with admin_engine.connect() as connection:
+            exists = connection.scalar(
+                text("SELECT 1 FROM pg_database WHERE datname = :database_name"),
+                {"database_name": database_name},
+            )
+            if exists is None:
+                quoted_database_name = database_name.replace('"', '""')
+                connection.execute(text(f'CREATE DATABASE "{quoted_database_name}"'))
+    finally:
+        admin_engine.dispose()
+
+
+def _reset_test_database(database_url: str) -> None:
+    engine = create_engine(database_url)
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+            connection.execute(text("CREATE SCHEMA public"))
+            connection.execute(text("GRANT ALL ON SCHEMA public TO CURRENT_USER"))
+            connection.execute(text("GRANT ALL ON SCHEMA public TO PUBLIC"))
+    finally:
+        engine.dispose()
 
 
 def _resolve_test_database_url() -> str:

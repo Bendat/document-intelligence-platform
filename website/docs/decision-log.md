@@ -64,9 +64,19 @@ Run infrastructure with Docker Compose and keep the API and worker on the host
 machine during early development. That keeps iteration fast without giving up a
 reproducible local environment.
 
+### Use Ollama plus Qwen3 as the local Slice 5 default
+
+Reason:
+Slice 5 needs free local embeddings, classification, and summarization without
+locking the application layer to a hosted provider. Ollama provides a pragmatic
+local runtime, `qwen3-embedding:0.6b` is the default embedding model, and
+`qwen3:4b` is the default local generation model. Larger local Qwen3 variants
+remain a straightforward upgrade path. See
+[EDR 001](./edr-001-local-model-defaults.md).
+
 ## Open decisions
 
-- exact embedding and generation model choices
+- hosted production embedding and generation provider choices
 - final parser package selection after prototyping
 - local development container strategy
 - evaluation dataset structure
