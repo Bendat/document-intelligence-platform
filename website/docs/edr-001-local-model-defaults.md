@@ -94,7 +94,8 @@ Local workflow:
 
 1. start infrastructure with Docker Compose
 2. pull the default local models
-3. run the API and worker on the host
+3. run the API on the host
+4. run the worker on the host once Slice 7 async execution is in play
 
 CI impact:
 

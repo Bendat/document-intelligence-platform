@@ -22,7 +22,7 @@ services reproducible.
 ## Host processes
 
 - FastAPI API
-- Celery worker
+- Celery worker once Slice 7 async execution lands
 - pytest, ruff, and mypy
 - Alembic migrations
 
@@ -66,7 +66,11 @@ Run the API on the host:
 make api
 ```
 
-In a second shell:
+For the current slices, stop there. `POST /documents/ingest` still uses the
+in-process dispatcher stub, so there is no background work for a Celery worker
+to pick up yet.
+
+When working on Slice 7 or later, run the worker in a second shell:
 
 ```bash
 make worker
@@ -88,8 +92,10 @@ Use one of these depending on what you need:
 - infrastructure only: `make up`
 - infrastructure plus local models: `make up && make ai-models`
 - local model verification: `make ai-smoke`
-- full local development: `make up && make sync && make ai-models`, then run
-  `make api` and `make worker` in separate shells
+- current full local development: `make up && make sync && make ai-models`, then
+  run `make api`
+- async-development loop for Slice 7+: `make up && make sync && make ai-models`,
+  then run `make api` and `make worker` in separate shells
 
 ## Equivalent raw Docker Compose commands
 
@@ -148,7 +154,7 @@ make help
 
 ## Local model defaults
 
-Slice 5 local development uses these defaults:
+Slice 5 preparation uses these defaults:
 
 - `MODEL_API_BASE_URL=http://localhost:11434/v1`
 - `GENERATION_MODEL=qwen3:4b`

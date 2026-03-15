@@ -167,8 +167,9 @@ rewriting core business logic.
 
 Current ingestion route semantics:
 
-- `POST /documents/ingest` creates a document record and enqueues async enrichment
-  (status transitions to `enrichment_pending`)
+- `POST /documents/ingest` creates a document record and records pending
+  enrichment work (status transitions to `enrichment_pending`); real background
+  execution lands in Slice 7
 - `POST /documents/ingest/local` performs synchronous local-file ingestion
   (parse + extracted-text persistence + chunk persistence; status transitions to
   `ready`)

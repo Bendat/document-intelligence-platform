@@ -15,7 +15,7 @@ Infrastructure runs in Docker Compose:
 Application processes run on the host during early development:
 
 - FastAPI API
-- Celery worker
+- Celery worker once Slice 7 async execution lands
 - tests, linting, and type checks
 
 ## Commands
@@ -56,9 +56,11 @@ If `uv` is installed:
 ```bash
 make sync
 make api
-make worker
 make test
 ```
+
+Run `make worker` only when you are working on the async execution slice or
+later; the current slices still use the in-process dispatcher stub.
 
 To use Postgres persistence for the API/runtime:
 
@@ -72,8 +74,10 @@ Typical local startup modes:
 - infrastructure only: `make up`
 - infrastructure plus local models: `make up && make ai-models`
 - Ollama verification: `make ai-smoke`
-- full local dev loop: `make up && make sync && make ai-models`, then run
-  `make api` and `make worker` in separate shells
+- current full local dev loop: `make up && make sync && make ai-models`, then
+  run `make api`
+- async development loop for Slice 7+: `make up && make sync && make ai-models`,
+  then run `make api` and `make worker` in separate shells
 
 ## Documentation
 
