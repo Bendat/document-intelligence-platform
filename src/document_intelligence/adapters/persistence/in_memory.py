@@ -1,9 +1,13 @@
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 
 from document_intelligence.application.common.ports.repositories import (
     ChunkRepository,
     DocumentRepository,
     JobRepository,
+)
+from document_intelligence.application.common.ports.transactions import (
+    TransactionManager,
 )
 from document_intelligence.domain.document_catalog.entities import Chunk, Document
 from document_intelligence.domain.jobs.entities import IngestionJob
@@ -40,3 +44,9 @@ class InMemoryJobRepository(JobRepository):
 
     def get(self, job_id: str) -> IngestionJob | None:
         return self._jobs.get(job_id)
+
+
+class InMemoryTransactionManager(TransactionManager):
+    @contextmanager
+    def transaction(self) -> Iterator[None]:
+        yield

@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: up down logs sync api worker test lint format typecheck docs-build
+.PHONY: up down logs sync api worker test lint format typecheck docs-build db-upgrade db-downgrade
 
 up:
 	docker compose up -d
@@ -34,3 +34,9 @@ typecheck:
 
 docs-build:
 	cd website && npm run build
+
+db-upgrade:
+	$(UV) run alembic upgrade head
+
+db-downgrade:
+	$(UV) run alembic downgrade -1
