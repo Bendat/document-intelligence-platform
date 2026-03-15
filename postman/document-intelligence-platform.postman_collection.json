@@ -1,0 +1,129 @@
+{
+  "info": {
+    "_postman_id": "c53f64a8-644a-48d6-a619-54f0f8668c85",
+    "name": "Document Intelligence Platform",
+    "description": "Manual testing collection for the current document intelligence platform API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Basic service health check."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Ingest Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"ingest returns 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var payload = pm.response.json();",
+                  "pm.collectionVariables.set(\"document_id\", payload.id);",
+                  "",
+                  "pm.test(\"document id is captured\", function () {",
+                  "  pm.expect(pm.collectionVariables.get(\"document_id\")).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_uri\": \"file:///docs/service-overview.md\",\n  \"title\": \"Service Overview\",\n  \"media_type\": \"text/markdown\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/ingest",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "ingest"
+              ]
+            },
+            "description": "Create a document record and mark it for downstream enrichment."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"get document returns 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"response contains the requested document\", function () {",
+                  "  var payload = pm.response.json();",
+                  "  pm.expect(payload.document.id).to.eql(pm.collectionVariables.get(\"document_id\"));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/documents/{{document_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "{{document_id}}"
+              ]
+            },
+            "description": "Retrieve a document and any stored chunks."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "document_id",
+      "value": ""
+    }
+  ]
+}

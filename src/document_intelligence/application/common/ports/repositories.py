@@ -12,7 +12,13 @@ class DocumentRepository(Protocol):
 
 
 class ChunkRepository(Protocol):
-    def save_many(self, chunks: Sequence[Chunk]) -> None: ...
+    """Store and load retrieval-ready chunks associated with a document."""
+
+    def replace_for_document(
+        self,
+        document_id: str,
+        chunks: Sequence[Chunk],
+    ) -> None: ...
 
     def for_document(self, document_id: str) -> Sequence[Chunk]: ...
 
