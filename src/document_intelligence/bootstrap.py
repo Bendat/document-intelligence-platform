@@ -24,6 +24,10 @@ from document_intelligence.adapters.persistence.postgres import (
     create_session_factory,
 )
 from document_intelligence.adapters.queue.in_memory import InMemoryTaskDispatcher
+from document_intelligence.adapters.retrieval import (
+    InMemoryVectorSearch,
+    PgvectorVectorSearch,
+)
 from document_intelligence.application.common.ports.chunking import TextChunker
 from document_intelligence.application.common.ports.dispatch import TaskDispatcher
 from document_intelligence.application.common.ports.parsers import ParserRegistry
@@ -36,6 +40,7 @@ from document_intelligence.application.common.ports.repositories import (
     DocumentRepository,
     JobRepository,
 )
+from document_intelligence.application.common.ports.retrieval import VectorSearchPort
 from document_intelligence.application.common.ports.transactions import (
     TransactionManager,
 )
@@ -49,6 +54,7 @@ class ApplicationContainer:
     job_repository: JobRepository
     embedding_provider: EmbeddingProvider
     generation_provider: GenerationProvider
+    vector_search: VectorSearchPort
     task_dispatcher: TaskDispatcher
     parser_registry: ParserRegistry
     text_chunker: TextChunker
@@ -69,6 +75,11 @@ def create_in_memory_container(settings: Settings) -> ApplicationContainer:
         job_repository=job_repository,
         embedding_provider=embedding_provider,
         generation_provider=generation_provider,
+        vector_search=InMemoryVectorSearch(
+            document_repository=document_repository,
+            chunk_repository=chunk_repository,
+            embedding_model=settings.resolved_embedding_model_id,
+        ),
         task_dispatcher=InMemoryTaskDispatcher(job_repository=job_repository),
         parser_registry=create_default_local_file_parser_registry(),
         text_chunker=DeterministicTextChunker(),
@@ -89,6 +100,10 @@ def create_postgres_container(
         job_repository=job_repository,
         embedding_provider=embedding_provider,
         generation_provider=generation_provider,
+        vector_search=PgvectorVectorSearch(
+            session_factory=session_factory,
+            embedding_model=settings.resolved_embedding_model_id,
+        ),
         task_dispatcher=InMemoryTaskDispatcher(job_repository=job_repository),
         parser_registry=create_default_local_file_parser_registry(),
         text_chunker=DeterministicTextChunker(),

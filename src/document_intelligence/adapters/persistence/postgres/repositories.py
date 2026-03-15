@@ -67,6 +67,12 @@ class PostgresDocumentRepository(DocumentRepository):
                 return None
             return _document_from_model(model)
 
+    def list(self) -> Sequence[Document]:
+        statement = select(DocumentModel).order_by(DocumentModel.id.asc())
+        with read_session(self._session_factory) as session:
+            models = session.scalars(statement).all()
+            return [_document_from_model(model) for model in models]
+
 
 class PostgresChunkRepository(ChunkRepository):
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
@@ -153,6 +159,8 @@ def _chunk_from_model(model: ChunkModel) -> Chunk:
         index=model.chunk_index,
         text=model.text,
         embedding=list(model.embedding) if model.embedding is not None else [],
+        embedding_model=model.embedding_model,
+        embedding_dimensions=model.embedding_dimensions,
     )
 
 
@@ -173,6 +181,8 @@ def _replace_chunks(
                 chunk_index=chunk.index,
                 text=chunk.text,
                 embedding=list(chunk.embedding) if chunk.embedding else None,
+                embedding_model=chunk.embedding_model,
+                embedding_dimensions=_resolve_embedding_dimensions(chunk),
             )
         )
 
@@ -190,3 +200,23 @@ def _raise_chunk_document_mismatch(
         "Chunk document_id mismatch for chunk "
         f"{chunk_id}: expected {expected_document_id}, got {chunk_document_id}"
     )
+
+
+def _resolve_embedding_dimensions(chunk: Chunk) -> int | None:
+    if not chunk.embedding:
+        return chunk.embedding_dimensions
+
+    if (
+        chunk.embedding_dimensions is not None
+        and chunk.embedding_dimensions != len(chunk.embedding)
+    ):
+        raise ValueError(
+            "Chunk embedding_dimensions mismatch for chunk "
+            f"{chunk.id}: expected {len(chunk.embedding)}, "
+            f"got {chunk.embedding_dimensions}"
+        )
+    if chunk.embedding_dimensions is not None:
+        return chunk.embedding_dimensions
+    if chunk.embedding:
+        return len(chunk.embedding)
+    return None

@@ -13,6 +13,16 @@ from document_intelligence.bootstrap import ApplicationContainer
 from document_intelligence.config import get_settings
 
 
+@pytest.fixture(autouse=True)
+def force_in_memory_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PERSISTENCE_BACKEND", "in_memory")
+    get_settings.cache_clear()
+    try:
+        yield
+    finally:
+        get_settings.cache_clear()
+
+
 class BrokenGenerationProvider:
     def generate(self, prompt: str) -> str:
         assert prompt

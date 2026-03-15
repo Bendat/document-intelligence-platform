@@ -41,6 +41,10 @@ class DeterministicGenerationProvider:
             summary = _summarize(source_text)
             return json.dumps({"summary": summary})
 
+        if '{"answer":"<grounded answer in 2-5 sentences>"}' in prompt:
+            answer = _answer_question_from_evidence(prompt)
+            return json.dumps({"answer": answer})
+
         if "reply with exactly: ok" in lowered:
             return "OK"
 
@@ -76,6 +80,29 @@ def _classify_by_keyword(source_text: str) -> str:
 
 def _summarize(source_text: str) -> str:
     compact = " ".join(source_text.split())
+    if len(compact) <= 240:
+        return compact
+    return f"{compact[:237].rstrip()}..."
+
+
+def _answer_question_from_evidence(prompt: str) -> str:
+    fallback = (
+        "I could not find supporting evidence in the current corpus "
+        "to answer that question."
+    )
+    evidence_match = re.search(
+        r"Evidence:\s*(.*?)\s*Return strict JSON",
+        prompt,
+        flags=re.DOTALL,
+    )
+    if evidence_match is None:
+        return fallback
+
+    evidence = evidence_match.group(1).strip()
+    if not evidence:
+        return fallback
+
+    compact = " ".join(evidence.split())
     if len(compact) <= 240:
         return compact
     return f"{compact[:237].rstrip()}..."

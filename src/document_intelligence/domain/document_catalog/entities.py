@@ -43,6 +43,8 @@ class Chunk:
     index: int
     text: str
     embedding: list[float] = field(default_factory=list)
+    embedding_model: str | None = None
+    embedding_dimensions: int | None = None
 
 
 @dataclass(slots=True)

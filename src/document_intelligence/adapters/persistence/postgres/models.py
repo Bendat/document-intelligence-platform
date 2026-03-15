@@ -41,6 +41,8 @@ class ChunkModel(Base):
     embedding: Mapped[list[float] | None] = mapped_column(
         Vector(dim=None), nullable=True
     )
+    embedding_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    embedding_dimensions: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class JobModel(Base):

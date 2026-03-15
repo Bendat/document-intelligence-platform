@@ -25,6 +25,9 @@ class InMemoryDocumentRepository(DocumentRepository):
     def get(self, document_id: str) -> Document | None:
         return self._documents.get(document_id)
 
+    def list(self) -> Sequence[Document]:
+        return list(self._documents.values())
+
     def snapshot(self) -> dict[str, Document]:
         return deepcopy(self._documents)
 
