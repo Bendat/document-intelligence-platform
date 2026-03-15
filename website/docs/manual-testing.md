@@ -11,6 +11,7 @@ Run a repeatable API smoke test with Postman that covers:
 - service health
 - create-and-enqueue ingestion (`POST /documents/ingest`)
 - synchronous local ingestion (`POST /documents/ingest/local`)
+- local enrichment outputs (classification, summary, chunk embeddings)
 - expected error handling for missing and unsupported local sources
 - optional Ollama chat and embedding smoke checks
 
@@ -77,10 +78,10 @@ Expectation: `201 Created`, response status is `enrichment_pending`, `document_i
 Expectation: `200 OK`, `document.status` is `enrichment_pending`, `chunks` is empty.
 
 4. `04 - Ingest Local Document (Sync End-to-End)`
-Expectation: `201 Created`, response status is `ready`, `local_document_id` is captured.
+Expectation: `201 Created`, response status is `ready`, `classification` and `summary` are present, `local_document_id` is captured.
 
 5. `05 - Get Document (Locally Ingested)`
-Expectation: `200 OK`, `document.status` is `ready`, `chunks.length > 0`.
+Expectation: `200 OK`, `document.status` is `ready`, `document.classification` and `document.summary` are present, `chunks.length > 0`, and `chunks[0].embedding.length > 0`.
 
 6. `06 - Ingest Local Missing File (Expected 404)`
 Expectation: `404 Not Found`.

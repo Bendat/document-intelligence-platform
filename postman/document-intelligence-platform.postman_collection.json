@@ -168,6 +168,17 @@
                   "",
                   "pm.test(\"local document id is captured\", function () {",
                   "  pm.expect(pm.collectionVariables.get(\"local_document_id\")).to.be.a(\"string\");",
+                  "});",
+                  "",
+                  "pm.test(\"local ingest returns classification\", function () {",
+                  "  pm.expect(payload.classification).to.be.an(\"object\");",
+                  "  pm.expect(payload.classification.label).to.be.a(\"string\");",
+                  "});",
+                  "",
+                  "pm.test(\"local ingest returns summary\", function () {",
+                  "  pm.expect(payload.summary).to.be.an(\"object\");",
+                  "  pm.expect(payload.summary.text).to.be.a(\"string\");",
+                  "  pm.expect(payload.summary.text.length).to.be.above(0);",
                   "});"
                 ]
               }
@@ -223,6 +234,23 @@
                   "",
                   "pm.test(\"local document has chunks\", function () {",
                   "  pm.expect(payload.chunks.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"local document has classification\", function () {",
+                  "  pm.expect(payload.document.classification).to.be.an(\"object\");",
+                  "  pm.expect(payload.document.classification.label).to.be.a(\"string\");",
+                  "});",
+                  "",
+                  "pm.test(\"local document has summary\", function () {",
+                  "  pm.expect(payload.document.summary).to.be.an(\"object\");",
+                  "  pm.expect(payload.document.summary.text).to.be.a(\"string\");",
+                  "  pm.expect(payload.document.summary.text.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"local chunks include embeddings\", function () {",
+                  "  pm.expect(payload.chunks[0].embedding).to.be.an(\"array\");",
+                  "  pm.expect(payload.chunks[0].embedding.length).to.be.above(0);",
+                  "  pm.expect(typeof payload.chunks[0].embedding[0]).to.eql(\"number\");",
                   "});"
                 ]
               }
@@ -241,7 +269,7 @@
                 "{{local_document_id}}"
               ]
             },
-            "description": "Retrieve a synchronously ingested local document and verify chunk persistence."
+            "description": "Retrieve a synchronously ingested local document and verify chunk + enrichment persistence."
           },
           "response": []
         },

@@ -1,0 +1,16 @@
+You are summarizing an internal engineering document.
+
+Write a concise summary suitable for retrieval previews.
+
+Return JSON only with this exact schema:
+{"summary":"<one concise paragraph>"}
+
+Rules:
+- Keep the summary under 90 words.
+- Keep factual tone and avoid speculation.
+- Do not include markdown fences or explanation text.
+
+Document:
+<<<DOCUMENT>>>
+{{document_text}}
+<<<END_DOCUMENT>>>

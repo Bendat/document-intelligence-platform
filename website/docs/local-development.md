@@ -15,6 +15,7 @@ services reproducible.
 ## Compose services
 
 - PostgreSQL with `pgvector`
+- Adminer for PostgreSQL browsing
 - Redis
 - Azurite for Azure Blob Storage emulation
 - Ollama for local chat and embedding inference
@@ -60,6 +61,15 @@ Run the Ollama smoke test:
 make ai-smoke
 ```
 
+Run the GitHub Models smoke test (chat + embeddings):
+
+```bash
+GITHUB_MODELS_TOKEN=... \
+GENERATION_MODEL=openai/gpt-4.1-mini \
+EMBEDDING_MODEL=openai/text-embedding-3-small \
+make github-models-smoke
+```
+
 Run the API on the host:
 
 ```bash
@@ -96,6 +106,7 @@ Use one of these depending on what you need:
   run `make api`
 - async-development loop for Slice 7+: `make up && make sync && make ai-models`,
   then run `make api` and `make worker` in separate shells
+- GitHub Models verification: `make github-models-smoke` with token and model IDs
 
 ## Equivalent raw Docker Compose commands
 
@@ -117,6 +128,12 @@ Start only the Ollama service:
 
 ```bash
 docker compose up -d ollama
+```
+
+Start only the Adminer service:
+
+```bash
+docker compose up -d adminer
 ```
 
 Show running services:
@@ -148,14 +165,24 @@ make help
 ## Compose notes
 
 - PostgreSQL listens on `localhost:5432`
+- Adminer listens on `localhost:8080` by default (`ADMINER_PORT`)
 - Redis listens on `localhost:6379`
 - Azurite Blob Storage listens on `localhost:10000`
 - Ollama listens on `localhost:11434`
+
+Adminer login defaults:
+
+- system: `PostgreSQL`
+- server: `postgres` (service name on the Compose network)
+- username: value of `POSTGRES_USER` (default `postgres`)
+- password: value of `POSTGRES_PASSWORD` (default `postgres`)
+- database: value of `POSTGRES_DB` (default `document_intelligence`)
 
 ## Local model defaults
 
 Slice 5 preparation uses these defaults:
 
+- `AI_PROVIDER_BACKEND=auto`
 - `MODEL_API_BASE_URL=http://localhost:11434/v1`
 - `GENERATION_MODEL=qwen3:4b`
 - `EMBEDDING_MODEL=qwen3-embedding:0.6b`
@@ -164,6 +191,24 @@ Optional stronger-machine upgrades:
 
 - `GENERATION_MODEL=qwen3:8b`
 - `EMBEDDING_MODEL=qwen3-embedding:4b`
+
+`AI_PROVIDER_BACKEND=auto` uses the OpenAI-compatible adapter when model
+settings are present, and falls back to deterministic local providers when they
+are not. You can force behavior with:
+
+- `AI_PROVIDER_BACKEND=openai_compatible`
+- `AI_PROVIDER_BACKEND=deterministic`
+- `AI_PROVIDER_BACKEND=github_models`
+
+GitHub Models configuration (generation + embeddings):
+
+- `AI_PROVIDER_BACKEND=github_models`
+- `GITHUB_MODELS_TOKEN` (or rely on `GITHUB_TOKEN` in CI)
+- `GENERATION_MODEL` as a GitHub Models chat model ID
+  (for example `openai/gpt-4.1-mini`)
+- `EMBEDDING_MODEL` as a GitHub Models embedding model ID
+  (for example `openai/text-embedding-3-small`)
+- optional `GITHUB_MODELS_ORG` to target org-scoped inference routes
 
 `make ai-models` pulls the default Ollama models into the local Docker volume.
 That step is intentionally explicit so `make up` stays reasonably fast and does
@@ -178,5 +223,5 @@ embedding generation over the OpenAI-compatible API.
 ## Deliberate non-goals for now
 
 - running API and worker in Compose by default
-- adding pgAdmin or other admin tooling before there is a real need
+- adding heavy database admin suites before there is a real need
 - introducing Kubernetes into the local workflow

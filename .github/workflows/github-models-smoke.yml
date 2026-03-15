@@ -1,0 +1,35 @@
+name: GitHub Models Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/github-models-smoke.yml"
+      - "scripts/github_models_smoke_test.sh"
+      - "src/document_intelligence/adapters/ai/openai_compatible.py"
+      - "src/document_intelligence/bootstrap.py"
+      - "src/document_intelligence/config.py"
+      - ".env.example"
+
+permissions:
+  contents: read
+  models: read
+
+jobs:
+  github-models-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AI_PROVIDER_BACKEND: github_models
+      GENERATION_MODEL: openai/gpt-4.1-mini
+      EMBEDDING_MODEL: openai/text-embedding-3-small
+      GITHUB_MODELS_API_VERSION: 2026-03-10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run GitHub Models smoke test
+        run: make github-models-smoke
