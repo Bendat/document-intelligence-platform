@@ -3,6 +3,36 @@
 This repository contains the planning site and backend scaffold for the
 document intelligence platform MVP.
 
+## Quickstart
+
+The shortest local path is:
+
+```bash
+make bootstrap
+make up
+make ai-models
+make api
+```
+
+That gives you the default hybrid development setup:
+
+- infrastructure in Docker Compose
+- API on the host
+- in-memory persistence unless you opt into Postgres mode
+
+For Postgres-backed runtime:
+
+```bash
+make dev-postgres
+```
+
+In a second shell, seed a realistic retrieval corpus when you want to exercise
+search and grounded Q&A:
+
+```bash
+make seed-corpus
+```
+
 ## Local stack
 
 Infrastructure runs in Docker Compose:
@@ -20,6 +50,18 @@ Application processes run on the host during early development:
 - tests, linting, and type checks
 
 ## Commands
+
+Check that the local toolchain is installed:
+
+```bash
+make doctor
+```
+
+Create `.env` if missing, verify the toolchain, and install Python dependencies:
+
+```bash
+make bootstrap
+```
 
 Start local infrastructure only:
 
@@ -83,6 +125,12 @@ PERSISTENCE_BACKEND=postgres make db-upgrade
 PERSISTENCE_BACKEND=postgres make api
 ```
 
+Equivalent combined target:
+
+```bash
+make dev-postgres
+```
+
 Typical local startup modes:
 
 - infrastructure only: `make up`
@@ -92,6 +140,16 @@ Typical local startup modes:
   run `make api`
 - async development loop for Slice 7+: `make up && make sync && make ai-models`,
   then run `make api` and `make worker` in separate shells
+
+## Cross-Platform Note
+
+The documented GitHub Models flow is intentionally environment-variable based:
+set `GITHUB_MODELS_TOKEN` or `GITHUB_TOKEN`.
+
+- macOS, Linux, and Windows can all use that path
+- secret-store integration such as macOS Keychain is not currently implemented
+- shell examples in this repo assume a POSIX shell; on Windows, use WSL2 or
+  translate the env var examples to PowerShell syntax
 
 Database UI:
 

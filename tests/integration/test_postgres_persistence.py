@@ -19,6 +19,7 @@ from document_intelligence.adapters.persistence.postgres.repositories import (
 from document_intelligence.adapters.persistence.postgres.session import (
     SqlAlchemyTransactionManager,
 )
+from document_intelligence.adapters.retrieval import PgvectorVectorSearch
 from document_intelligence.app import create_app
 from document_intelligence.application.common.ports.dispatch import TaskDispatcher
 from document_intelligence.application.document_catalog.commands import (
@@ -89,27 +90,27 @@ def postgres_session_factory(
 def postgres_environment(
     migrated_database_url: str,
 ) -> Iterator[None]:
-    previous_backend = os.getenv("PERSISTENCE_BACKEND")
-    previous_database_url = os.getenv("DATABASE_URL")
+    yield from _postgres_environment(migrated_database_url)
 
-    os.environ["PERSISTENCE_BACKEND"] = "postgres"
-    os.environ["DATABASE_URL"] = migrated_database_url
-    get_settings.cache_clear()
+
+@pytest.fixture()
+def stale_schema_database_url() -> Iterator[str]:
+    database_url = _resolve_stale_test_database_url()
+    _ensure_test_database_exists(database_url)
+    _reset_test_database(database_url)
+    command.upgrade(_alembic_config(database_url), "20260315_0002")
 
     try:
-        yield
+        yield database_url
     finally:
-        if previous_backend is None:
-            os.environ.pop("PERSISTENCE_BACKEND", None)
-        else:
-            os.environ["PERSISTENCE_BACKEND"] = previous_backend
+        _reset_test_database(database_url)
 
-        if previous_database_url is None:
-            os.environ.pop("DATABASE_URL", None)
-        else:
-            os.environ["DATABASE_URL"] = previous_database_url
 
-        get_settings.cache_clear()
+@pytest.fixture()
+def stale_postgres_environment(
+    stale_schema_database_url: str,
+) -> Iterator[None]:
+    yield from _postgres_environment(stale_schema_database_url)
 
 
 def test_document_repository_round_trip(
@@ -175,6 +176,143 @@ def test_chunk_repository_replace_for_document(
 
     assert [chunk.id for chunk in loaded] == ["chunk-zero", "chunk-two"]
     assert [chunk.text for chunk in loaded] == ["First", "Third"]
+
+
+def test_pgvector_vector_search_returns_ranked_chunks(
+    postgres_session_factory: sessionmaker[Session],
+) -> None:
+    document_repository = PostgresDocumentRepository(
+        session_factory=postgres_session_factory
+    )
+    chunk_repository = PostgresChunkRepository(session_factory=postgres_session_factory)
+    vector_search = PgvectorVectorSearch(
+        session_factory=postgres_session_factory,
+        embedding_model="test-embed-v1",
+    )
+
+    document_repository.save(
+        Document(
+            id="doc-search",
+            source_uri="file:///docs/search.md",
+            title="Search Document",
+            media_type="text/markdown",
+            status=DocumentStatus.READY,
+        )
+    )
+    document_repository.save(
+        Document(
+            id="doc-other",
+            source_uri="file:///docs/other.md",
+            title="Other Document",
+            media_type="text/markdown",
+            status=DocumentStatus.READY,
+        )
+    )
+
+    chunk_repository.replace_for_document(
+        "doc-search",
+        [
+            Chunk(
+                id="chunk-near",
+                document_id="doc-search",
+                index=0,
+                text="Closest match",
+                embedding=[1.0, 0.0, 0.0],
+                embedding_model="test-embed-v1",
+                embedding_dimensions=3,
+            ),
+            Chunk(
+                id="chunk-mid",
+                document_id="doc-search",
+                index=1,
+                text="Second match",
+                embedding=[0.7, 0.7, 0.0],
+                embedding_model="test-embed-v1",
+                embedding_dimensions=3,
+            ),
+        ],
+    )
+    chunk_repository.replace_for_document(
+        "doc-other",
+        [
+            Chunk(
+                id="chunk-far",
+                document_id="doc-other",
+                index=0,
+                text="Far match",
+                embedding=[0.0, 1.0, 0.0],
+                embedding_model="test-embed-v2",
+                embedding_dimensions=3,
+            ),
+            Chunk(
+                id="chunk-dim-mismatch",
+                document_id="doc-other",
+                index=1,
+                text="Wrong dimensions",
+                embedding=[1.0, 0.0],
+                embedding_model="test-embed-v1",
+                embedding_dimensions=2,
+            )
+        ],
+    )
+
+    hits = vector_search.search(query_embedding=[1.0, 0.0, 0.0], limit=5)
+
+    assert [hit.chunk_id for hit in hits] == ["chunk-near", "chunk-mid"]
+    assert hits[0].source_uri == "file:///docs/search.md"
+    assert hits[0].score > hits[1].score
+
+
+def test_pgvector_vector_search_includes_legacy_chunks_without_metadata(
+    postgres_session_factory: sessionmaker[Session],
+) -> None:
+    document_repository = PostgresDocumentRepository(
+        session_factory=postgres_session_factory
+    )
+    chunk_repository = PostgresChunkRepository(session_factory=postgres_session_factory)
+    vector_search = PgvectorVectorSearch(
+        session_factory=postgres_session_factory,
+        embedding_model="test-embed-v1",
+    )
+
+    document_repository.save(
+        Document(
+            id="doc-legacy",
+            source_uri="file:///docs/legacy.md",
+            title="Legacy Document",
+            media_type="text/markdown",
+            status=DocumentStatus.READY,
+        )
+    )
+
+    chunk_repository.replace_for_document(
+        "doc-legacy",
+        [
+            Chunk(
+                id="chunk-legacy",
+                document_id="doc-legacy",
+                index=0,
+                text="Legacy match",
+                embedding=[1.0, 0.0, 0.0],
+                embedding_model="test-embed-v1",
+                embedding_dimensions=3,
+            )
+        ],
+    )
+
+    with postgres_session_factory.begin() as session:
+        session.execute(
+            text(
+                "UPDATE chunks "
+                "SET embedding_model = NULL, embedding_dimensions = NULL "
+                "WHERE id = :chunk_id"
+            ),
+            {"chunk_id": "chunk-legacy"},
+        )
+
+    hits = vector_search.search(query_embedding=[1.0, 0.0, 0.0], limit=5)
+
+    assert [hit.chunk_id for hit in hits] == ["chunk-legacy"]
 
 
 def test_chunk_repository_rejects_mismatched_document_id(
@@ -256,6 +394,64 @@ def test_postgres_backend_persists_across_app_instances(
     assert get_response.status_code == 200
     payload = get_response.json()
     assert payload["document"]["title"] == "Persisted Document"
+
+
+def test_retrieval_endpoints_use_postgres_backend(
+    postgres_environment: None,
+    postgres_session_factory: sessionmaker[Session],
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "ownership.md"
+    source.write_text(
+        "# Ownership Runbook\n\n"
+        "Platform Reliability owns the payments service.\n\n"
+        "Checkout Experience acts as the backup team.",
+        encoding="utf-8",
+    )
+
+    with TestClient(create_app()) as client:
+        ingest_response = client.post(
+            "/documents/ingest/local",
+            json={"source_uri": str(source)},
+        )
+
+        assert ingest_response.status_code == 201
+        document_id = ingest_response.json()["id"]
+
+        search_response = client.post(
+            "/search/semantic",
+            json={"query": "payments service owner", "limit": 3},
+        )
+
+        assert search_response.status_code == 200
+        search_payload = search_response.json()
+        assert search_payload["results"]
+        assert search_payload["results"][0]["document_id"] == document_id
+        assert search_payload["results"][0]["source_uri"] == str(source)
+
+        ask_response = client.post(
+            "/ask",
+            json={"question": "Who owns the payments service?", "limit": 3},
+        )
+
+    assert ask_response.status_code == 200
+    ask_payload = ask_response.json()
+    assert ask_payload["answer"]
+    assert ask_payload["citations"]
+    assert ask_payload["citations"][0]["document_id"] == document_id
+
+
+def test_search_endpoint_returns_503_when_retrieval_schema_is_stale(
+    stale_postgres_environment: None,
+) -> None:
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/search/semantic",
+            json={"query": "anything", "limit": 3},
+        )
+
+    assert response.status_code == 503
+    assert "Run `alembic upgrade head`" in response.json()["detail"]
 
 
 def test_create_document_rollback_on_dispatch_error(
@@ -346,6 +542,40 @@ def _resolve_test_database_url() -> str:
         )
 
     return configured_url
+
+
+def _resolve_stale_test_database_url() -> str:
+    configured_url = _resolve_test_database_url()
+    parsed = make_url(configured_url)
+    database_name = parsed.database or ""
+    stale_database_name = database_name.removesuffix("_test") + "_stale_test"
+    return parsed.set(database=stale_database_name).render_as_string(
+        hide_password=False
+    )
+
+
+def _postgres_environment(database_url: str) -> Iterator[None]:
+    previous_backend = os.getenv("PERSISTENCE_BACKEND")
+    previous_database_url = os.getenv("DATABASE_URL")
+
+    os.environ["PERSISTENCE_BACKEND"] = "postgres"
+    os.environ["DATABASE_URL"] = database_url
+    get_settings.cache_clear()
+
+    try:
+        yield
+    finally:
+        if previous_backend is None:
+            os.environ.pop("PERSISTENCE_BACKEND", None)
+        else:
+            os.environ["PERSISTENCE_BACKEND"] = previous_backend
+
+        if previous_database_url is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = previous_database_url
+
+        get_settings.cache_clear()
 
 
 class FailingDispatcher(TaskDispatcher):

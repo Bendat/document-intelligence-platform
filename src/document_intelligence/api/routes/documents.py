@@ -159,6 +159,7 @@ def ingest_local_document(
                 document_repository=container.document_repository,
                 chunk_repository=container.chunk_repository,
                 embedding_provider=container.embedding_provider,
+                embedding_model=get_settings(request).resolved_embedding_model_id,
             ),
             classify_document=ClassifyDocument(
                 document_repository=container.document_repository,

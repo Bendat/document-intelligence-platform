@@ -36,17 +36,28 @@ services reproducible.
 
 ## Standard workflow
 
-Start local infrastructure:
+Check prerequisites and create local config:
 
 ```bash
-cp .env.example .env
+make bootstrap
+```
+
+That target:
+
+- copies `.env.example` to `.env` if `.env` does not exist
+- checks for required local tools
+- installs Python dependencies with `uv`
+
+Then start local infrastructure:
+
+```bash
 make up
 ```
 
-Install Python dependencies:
+If you want to run the checks without changing anything:
 
 ```bash
-make sync
+make doctor
 ```
 
 Pull the default local models:
@@ -92,6 +103,47 @@ To run the API with Postgres-backed persistence in this slice:
 PERSISTENCE_BACKEND=postgres make db-upgrade
 PERSISTENCE_BACKEND=postgres make api
 ```
+
+Equivalent combined target:
+
+```bash
+make dev-postgres
+```
+
+## Seeded Retrieval Workflow
+
+For realistic search and grounded Q&A testing, use the repo's seed corpus in
+`fixtures/seed_corpus/`.
+
+Recommended flow:
+
+In the first shell:
+
+```bash
+make bootstrap
+make up
+make ai-models
+make dev-postgres
+```
+
+In a second shell:
+
+```bash
+make seed-corpus
+```
+
+That ingests the markdown files in `fixtures/seed_corpus/` through
+`POST /documents/ingest/local` and prints the created document IDs as JSON.
+
+Important notes:
+
+- this seed flow assumes the API is running on the host at `http://127.0.0.1:8000`
+- the stack is still hybrid: Docker Compose runs infrastructure, while seeding
+  happens against the host API
+- rerunning `make seed-corpus` adds another copy of each document; for a clean
+  rerun, reset the local Postgres data or start with a fresh dev database
+- if you change `EMBEDDING_MODEL`, reseed from a clean database so all chunks
+  share the same embedding model metadata
 
 For a step-by-step Postman smoke flow, see [Manual Testing](./manual-testing.md).
 
@@ -177,6 +229,17 @@ Adminer login defaults:
 - username: value of `POSTGRES_USER` (default `postgres`)
 - password: value of `POSTGRES_PASSWORD` (default `postgres`)
 - database: value of `POSTGRES_DB` (default `document_intelligence`)
+
+## Platform Notes
+
+Current local workflow assumptions:
+
+- examples use POSIX-style shell syntax
+- on Windows, prefer WSL2 for the documented commands
+- the supported GitHub Models auth path is `GITHUB_MODELS_TOKEN` or
+  `GITHUB_TOKEN`
+- OS-specific secret-store integration such as macOS Keychain, Windows
+  Credential Manager, or Linux secret services is not implemented in this repo
 
 ## Local model defaults
 

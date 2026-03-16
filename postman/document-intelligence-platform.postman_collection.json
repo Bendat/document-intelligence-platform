@@ -274,6 +274,113 @@
           "response": []
         },
         {
+          "name": "05A - Search Semantic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"semantic search returns 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var payload = pm.response.json();",
+                  "pm.test(\"semantic search returns at least one result\", function () {",
+                  "  pm.expect(payload.results.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"top result points to the local document\", function () {",
+                  "  pm.expect(payload.results[0].document_id).to.eql(pm.collectionVariables.get(\"local_document_id\"));",
+                  "});",
+                  "",
+                  "pm.test(\"search results include score and text\", function () {",
+                  "  pm.expect(typeof payload.results[0].score).to.eql(\"number\");",
+                  "  pm.expect(payload.results[0].text).to.be.a(\"string\");",
+                  "  pm.expect(payload.results[0].text.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"{{search_query}}\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/search/semantic",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "search",
+                "semantic"
+              ]
+            },
+            "description": "Run semantic retrieval over chunk embeddings and return ranked evidence."
+          },
+          "response": []
+        },
+        {
+          "name": "05B - Ask Grounded Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"ask returns 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var payload = pm.response.json();",
+                  "pm.test(\"ask returns non-empty answer\", function () {",
+                  "  pm.expect(payload.answer).to.be.a(\"string\");",
+                  "  pm.expect(payload.answer.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"ask returns citations\", function () {",
+                  "  pm.expect(payload.citations.length).to.be.above(0);",
+                  "  pm.expect(payload.citations[0].source_uri).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"{{grounded_question}}\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ask",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ask"
+              ]
+            },
+            "description": "Generate a grounded answer and return citation evidence from semantic retrieval."
+          },
+          "response": []
+        },
+        {
           "name": "06 - Ingest Local Missing File (Expected 404)",
           "event": [
             {
@@ -490,6 +597,14 @@
     {
       "key": "unsupported_source_uri",
       "value": "file:///tmp/document-intelligence-unsupported.pdf"
+    },
+    {
+      "key": "search_query",
+      "value": "service ownership runbook"
+    },
+    {
+      "key": "grounded_question",
+      "value": "Who owns the service?"
     }
   ]
 }

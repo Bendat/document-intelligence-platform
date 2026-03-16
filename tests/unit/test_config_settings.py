@@ -70,6 +70,7 @@ def test_empty_model_settings_are_normalized_to_none(
 def test_openai_model_configuration_property(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    clear_model_env(monkeypatch)
     monkeypatch.setenv("MODEL_API_BASE_URL", "http://localhost:11434/v1")
     monkeypatch.setenv("GENERATION_MODEL", "qwen3:4b")
     monkeypatch.setenv("EMBEDDING_MODEL", "qwen3-embedding:0.6b")
@@ -77,6 +78,19 @@ def test_openai_model_configuration_property(
     settings = Settings(_env_file=None)
 
     assert settings.has_openai_model_configuration is True
+    assert settings.resolved_embedding_model_id == "qwen3-embedding:0.6b"
+
+
+def test_resolved_embedding_model_uses_deterministic_id_for_deterministic_backend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_model_env(monkeypatch)
+    monkeypatch.setenv("AI_PROVIDER_BACKEND", "deterministic")
+    monkeypatch.setenv("EMBEDDING_MODEL", "qwen3-embedding:0.6b")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.resolved_embedding_model_id == "deterministic"
 
 
 def test_resolved_github_models_token_prefers_explicit_token(
@@ -100,3 +114,13 @@ def test_resolved_github_models_token_falls_back_to_github_token(
     settings = Settings(_env_file=None)
 
     assert settings.resolved_github_models_token == "fallback-token"
+
+
+def test_resolved_embedding_model_defaults_to_deterministic_without_model_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_model_env(monkeypatch)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.resolved_embedding_model_id == "deterministic"

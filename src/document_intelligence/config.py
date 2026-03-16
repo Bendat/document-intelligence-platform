@@ -117,6 +117,16 @@ class Settings(BaseSettings):
     def resolved_github_models_token(self) -> str | None:
         return self.github_models_token or os.getenv("GITHUB_TOKEN")
 
+    @property
+    def resolved_embedding_model_id(self) -> str | None:
+        if self.ai_provider_backend == "deterministic":
+            return "deterministic"
+        if self.ai_provider_backend == "auto":
+            if not self.has_openai_model_configuration:
+                return "deterministic"
+            return self.embedding_model
+        return self.embedding_model
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

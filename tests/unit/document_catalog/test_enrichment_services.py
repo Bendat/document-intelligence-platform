@@ -60,6 +60,7 @@ def test_embed_document_chunks_replaces_embeddings() -> None:
         document_repository=document_repository,
         chunk_repository=chunk_repository,
         embedding_provider=StaticEmbeddingProvider([[0.1, 0.2], [0.3, 0.4]]),
+        embedding_model="deterministic",
     )
 
     service.execute(document.id)
@@ -67,6 +68,10 @@ def test_embed_document_chunks_replaces_embeddings() -> None:
     stored_chunks = list(chunk_repository.for_document(document.id))
     assert stored_chunks[0].embedding == [0.1, 0.2]
     assert stored_chunks[1].embedding == [0.3, 0.4]
+    assert stored_chunks[0].embedding_model == "deterministic"
+    assert stored_chunks[0].embedding_dimensions == 2
+    assert stored_chunks[1].embedding_model == "deterministic"
+    assert stored_chunks[1].embedding_dimensions == 2
 
 
 def test_embed_document_chunks_raises_on_vector_count_mismatch() -> None:

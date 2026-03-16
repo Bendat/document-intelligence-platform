@@ -10,6 +10,8 @@ class DocumentRepository(Protocol):
 
     def get(self, document_id: str) -> Document | None: ...
 
+    def list(self) -> Sequence[Document]: ...
+
 
 class ChunkRepository(Protocol):
     """Store and load retrieval-ready chunks associated with a document."""

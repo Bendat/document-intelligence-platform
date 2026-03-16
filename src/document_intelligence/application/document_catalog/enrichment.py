@@ -44,6 +44,7 @@ class EmbedDocumentChunks:
     document_repository: DocumentRepository
     chunk_repository: ChunkRepository
     embedding_provider: EmbeddingProvider
+    embedding_model: str | None = None
 
     def execute(self, document_id: str) -> list[Chunk]:
         document = self.document_repository.get(document_id)
@@ -68,6 +69,8 @@ class EmbedDocumentChunks:
                 index=chunk.index,
                 text=chunk.text,
                 embedding=[float(value) for value in embedding],
+                embedding_model=self.embedding_model,
+                embedding_dimensions=len(embedding),
             )
             for chunk, embedding in zip(chunks, embeddings, strict=True)
         ]

@@ -49,6 +49,42 @@ EOF
 
 Do not create `/tmp/document-intelligence-missing.md`; it is used for the expected 404 case.
 
+## Recommended Retrieval Corpus
+
+The one-file smoke flow above is enough to validate the endpoint wiring. For
+more realistic retrieval and grounded Q&A behavior, seed the repo corpus first:
+
+```bash
+PERSISTENCE_BACKEND=postgres make db-upgrade
+PERSISTENCE_BACKEND=postgres make api
+```
+
+In a second shell:
+
+```bash
+make seed-corpus
+```
+
+The seeded corpus lives in `fixtures/seed_corpus/` and includes:
+
+- a payments service runbook
+- a vendor production access policy
+- a checkout latency postmortem
+- a retrieval ADR
+- a customer exports PRD
+- an on-call handoff playbook
+
+Use the seeded corpus when you want to judge:
+
+- whether semantic search ranks the right document near the top
+- whether grounded answers stay inside the evidence
+- whether citations point to the expected source document
+- whether multi-section documents are chunked and retrieved sensibly
+
+If you change the embedding model or want a clean corpus, reset the local
+database before seeding again. The current helper does not deduplicate existing
+documents.
+
 ## Import Postman Assets
 
 1. Import collection: `postman/document-intelligence-platform.postman_collection.json`
@@ -63,6 +99,8 @@ Collection variables are preconfigured:
 - `local_source_uri=file:///tmp/document-intelligence-sample.md`
 - `missing_source_uri=file:///tmp/document-intelligence-missing.md`
 - `unsupported_source_uri=file:///tmp/document-intelligence-unsupported.pdf`
+- `search_query=service ownership runbook`
+- `grounded_question=Who owns the service?`
 
 ## Request Order And Expectations
 
@@ -83,16 +121,22 @@ Expectation: `201 Created`, response status is `ready`, `classification` and `su
 5. `05 - Get Document (Locally Ingested)`
 Expectation: `200 OK`, `document.status` is `ready`, `document.classification` and `document.summary` are present, `chunks.length > 0`, and `chunks[0].embedding.length > 0`.
 
-6. `06 - Ingest Local Missing File (Expected 404)`
+6. `05A - Search Semantic`
+Expectation: `200 OK`, `results.length > 0`, top result references the captured `local_document_id`, and each result includes `score`, chunk text, and source metadata.
+
+7. `05B - Ask Grounded Question`
+Expectation: `200 OK`, response includes a non-empty `answer` and `citations.length > 0`.
+
+8. `06 - Ingest Local Missing File (Expected 404)`
 Expectation: `404 Not Found`.
 
-7. `07 - Ingest Local Unsupported Media Type (Expected 415)`
+9. `07 - Ingest Local Unsupported Media Type (Expected 415)`
 Expectation: `415 Unsupported Media Type`.
 
-8. `08 - Ollama Chat Smoke`
+10. `08 - Ollama Chat Smoke`
 Expectation: `200 OK`, response content includes `OK`.
 
-9. `09 - Ollama Embedding Smoke`
+11. `09 - Ollama Embedding Smoke`
 Expectation: `200 OK`, `data[0].embedding` is a non-empty numeric array.
 
 ## Important Notes
@@ -108,3 +152,37 @@ Expectation: `200 OK`, `data[0].embedding` is a non-empty numeric array.
 - `500` on local ingest: verify path is local (`file://` or local filesystem path) and UTF-8 readable.
 - Unexpected statuses: rerun request 01 and confirm environment selection in Postman.
 - Ollama smoke failures: run `make ai-models` and confirm `{{ollama_base_url}}` is reachable.
+
+## Effective Search And Q&A Checks
+
+Once the realistic corpus is seeded, use a mix of direct search, grounded Q&A,
+and no-evidence prompts. These are good baseline checks:
+
+1. Search: `payments service owner`
+Expected: the payments runbook ranks near the top and clearly names Platform
+Reliability as the primary owner.
+
+2. Ask: `Who owns the payments service and which team is the backup?`
+Expected: the answer says Platform Reliability owns it and Checkout Experience
+is the secondary owner, with citations from the payments runbook.
+
+3. Ask: `What was the main contributor to the checkout latency incident on 2026-02-18?`
+Expected: the answer points to Redis connection pool exhaustion in
+`risk-evaluator`, citing the postmortem.
+
+4. Ask: `What controls are required for vendor production access?`
+Expected: the answer mentions just-in-time approval, MFA, session recording,
+named-user identity, and the time-bound session requirement, citing the vendor
+access policy.
+
+5. Ask: `Why did the team choose pgvector for retrieval?`
+Expected: the answer cites MVP simplicity, reuse of PostgreSQL, and avoiding
+extra infrastructure, citing ADR-004.
+
+6. Ask: `What are the launch metrics for customer exports?`
+Expected: the answer includes `95 percent of export jobs complete within 10
+minutes` and `support tickets decrease by 30 percent`, citing the PRD.
+
+7. Ask: `What color is the CEO's office sofa?`
+Expected: the answer should say there is not enough evidence in the corpus,
+with no confident fabricated detail.
